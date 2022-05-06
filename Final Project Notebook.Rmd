@@ -1,0 +1,215 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+#data set
+library("readxl")
+library("dplyr")
+library("xlsx")
+library("tidyr")
+data <- read_excel("C:\\Users\\antha\\Downloads\\uscensus.xlsx")
+df <- data.frame(data)
+invisible(df %>% filter_all(any_vars(!is.na(.))))
+invisible(df %>% filter_all(any_vars(complete.cases(.))))
+rename(df, "High School Graduation Rate" = "HG", "Gross State Product" = "NGSP", "Personal Income, By State" = "NPI", "Unemployment Rate" = "UR", "Violent Crime Rate" = "VCR")
+
+
+```
+#data cleaning
+```{r}
+df <- subset(df, select = -NGSP)
+#irrelevant/unnecessary
+```
+#data statistics
+```{r}
+CrimeRateMean <- mean(df$VCR)
+UnemploymentRateMean <- mean(df$UR)
+HighSchoolGradRate <- mean(df$HG)
+PersonalIncomeMean <- mean(df$NPI)
+tab <- matrix(c(CrimeRateMean, UnemploymentRateMean, HighSchoolGradRate, PersonalIncomeMean), ncol=4, byrow = TRUE)
+
+CrimeRateSTD <- sd(df$VCR)
+UnemploymentRateSTD <- sd(df$UR)
+HighSchoolGradSTD <- sd(df$HG)
+PersonalIncomeSTD <- sd(df$NPI)
+CrimeRateMode <- mode(df$VCR)
+UnemploymentRateMode <- mode(df$UR)
+HighSchoolGradMode <- mode(df$HG)
+PersonalIncomeMode <- mode(df$NPI)
+CrimeRateMedian <- median(df$VCR)
+UnemploymentRateMedian <- median(df$UR)
+HighSchoolGradMedian <- median(df$HG)
+PersonalIncomeMedian <- median(df$NPI)
+tab <- rbind(tab, c(CrimeRateSTD, UnemploymentRateSTD, HighSchoolGradSTD, PersonalIncomeSTD))
+tab <- rbind(tab, c(CrimeRateMode, UnemploymentRateMode, HighSchoolGradMode,PersonalIncomeMode))
+tab <- rbind(tab, c(CrimeRateMedian, UnemploymentRateMedian, HighSchoolGradMedian, PersonalIncomeMedian))
+
+colnames(tab) <- c('CrimeRate', 'UnemploymentRate', 'HighSchoolGraduation', 'PersonalIncome')
+rownames(tab) <- c('United States Average', 'Standard Deviation', 'Mode', 'Median')
+#mean, median, mode, standard deviation
+```
+#statistical tests
+```{r}
+df1 <- subset(df, select = -State)
+cor(df1)
+model <- lm(VCR ~ UR + NPI + HG, data = df1)
+summary(model)
+chisq <- lapply(df1[,-1], function(x) chisq.test(df1[,1], x)); chisq
+
+#correlational model, chi-squared test, multiple linear regression
+
+```
+#data Visualization
+```{r}
+library(ggplot2)
+ggplot(df1, aes(HG,NPI)) + geom_point() + geom_smooth(method = lm)
+plot(df)
+ggplot(df, aes(x=HG)) + geom_histogram(binwidth = 1.5) + geom_histogram(color = "black", fill = "red")
+ggplot(df, aes(x=NPI)) + geom_histogram(binwidth = 1.5) + geom_histogram(color = "black", fill = "blue")
+ggplot(df, aes(x=VCR)) + geom_histogram(binwidth = 1.5) + geom_histogram(color = "black", fill = "green")
+ggplot(df, aes(x=UR)) + geom_histogram(binwidth = 1.5) + geom_histogram(color = "black", fill = "purple")
+
+barplot(height = df$VCR,
+        main = "Violent Crime Rate by State",
+        xlab = "State",
+        ylab = "Violent Crime Rate",
+        names.arg = df$State,
+        border = "black",
+        col = "red",
+        las = 2,
+        cex.names = .43
+        )
+barplot(height = df$HG,
+        main = "High School Graduation Rate by State",
+        xlab = "State",
+        ylab = "High School Graduation Rate",
+        names.arg = df$State,
+        border = "black",
+        col = "red",
+        las = 2,
+        cex.names = .43
+        )
+barplot(height = df$NPI,
+        main = "Personal Income by State",
+        xlab = "State",
+        ylab = "Pesonal Income",
+        names.arg = df$State,
+        border = "black",
+        col = "red",
+        las = 2,
+        cex.names = .43
+        )
+barplot(height = df$UR,
+        main = "Unemployment Rate by State",
+        xlab = "State",
+        ylab = "Unemployment Rate",
+        names.arg = df$State,
+        border = "black",
+        col = "red",
+        las = 2,
+        cex.names = .43
+        )
+p <- 
+  ggplot(df, aes(HG, UR , size = VCR, color=State)) +
+  geom_point() +
+  theme_bw() 
+
+ggplotly(p)
+
+
+#graphs showing correlation with line of best fit
+#histograms showing skews for each variable
+
+```
+
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+library(ggplot2)
+library(plotly)
+
+p <- 
+  ggplot(df, aes(HG, UR , size = VCR, color=State)) +
+  geom_point() + labs(x="High School Graduation Rate",  y = "Unemployment Rate", title= "Comparing GED, Violence, and Unemployment by State", subtitle = "Click or hover over a bubble for more details", caption = "Larger circles indicate higher violent crime rates.") +
+  theme_bw() + scale_size(name="Violent Crime Rate by Size") + theme(legend.position = "right") 
+
+p1 <- 
+  ggplot(df, aes(NPI, VCR , size = HG, color=State)) +
+  geom_point() + labs(x="Personal Income",  y = "Violent Crime Rate", title= "Comparing Income, Violence, and GED by State", subtitle = "Click or hover over a bubble for more details", caption = "Larger circles indicate higher GED completion rates.") +
+  theme_bw() + scale_size(name="GED by Size") + theme(legend.position = "right")
+
+ggplotly(p)
+ggplotly(p1)
+```
+
+#building rShiny application
+```{r}
+library(shiny)
+library(shinythemes)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(plotly)
+library(readxl)
+library(dplyr)
+library(xlsx)
+library(tidyr)
+library(rsconnect)
+data <- read_excel("C:\\Users\\antha\\Downloads\\uscensus.xlsx")
+df <- data.frame(data)
+invisible(df %>% filter_all(any_vars(!is.na(.))))
+invisible(df %>% filter_all(any_vars(complete.cases(.))))
+rename(df, "High School Graduation Rate" = "HG", "Gross State Product" = "NGSP", "Personal Income, By State" = "NPI", "Unemployment Rate" = "UR", "Violent Crime Rate" = "VCR")
+
+ui <- fluidPage(
+  titlePanel("Plots comparing several variables in different states"),
+  mainPanel(
+            plotlyOutput("ggp1"),
+            plotlyOutput("ggp2")
+            )  
+  )
+
+
+server <- function(input, output){
+  output$ggp1 <- renderPlotly(ggplot(df, aes(NPI, VCR , size = HG, color=State)) +
+  geom_point() + labs(x="Personal Income",  y = "Violent Crime Rate", title= "Comparing Income, Violence, and GED by State", subtitle = "Click or hover over a bubble for more details", caption = "Larger circles indicate higher GED completion rates.") +
+  theme_bw() + scale_size(name="GED by Size") + theme(legend.position = "right"))
+  
+  output$ggp2 <- renderPlotly(ggplot(df, aes(HG, UR , size = VCR, color=State)) +
+  geom_point() + labs(x="High School Graduation Rate",  y = "Unemployment Rate", title= "Comparing GED, Violence, and Unemployment by State", subtitle = "Click or hover over a bubble for more details", caption = "Larger circles indicate higher violent crime rates.") +
+  theme_bw() + scale_size(name="Violent Crime Rate by Size") + theme(legend.position = "left"))
+  
+
+
+}
+
+shinyApp(ui = ui, server = server)
+
+rsconnect::deployApp()
+ 
+```
+
+
+```{r}
+library(rsconnect)
+
+rsconnect::setAccountInfo(name='amh371',                            token='6B493FEA8CC29BCEC10AE350E1F7A58F',
+                          secret='TpQesRkLQqPwHEbDmQkDQKh0qaocHDajrsKGKSQb')
+
+rsconnect::deployApp()
+
+```
+
